@@ -1,0 +1,11 @@
+ul.post-attachments {
+		list-style: none;
+			margin-left: 0;
+		}
+
+		li.post-attachment {
+				background: url(icons/attachment.png) 0 4px no-repeat;
+					padding-left: 24px;
+				}
+		}
+}
