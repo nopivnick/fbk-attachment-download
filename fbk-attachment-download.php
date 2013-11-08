@@ -23,31 +23,7 @@
 add_filter( 'the_content', 'my_the_content_filter' );
 
 function my_the_content_filter( $content ) {
-$str = <<< 'DOWNLOAD'
-        <input class="button-primary" type="button" name="DownloadZip" id="DownloadZip" value="<?php echo __('Descargar Zip', 'download_zip_attachments') ?>" onclick="download_zip_attachments_();" />
-        <div class="download_zip_loading" style="display:none"></div>
-        <script type="text/javascript">
-            function download_zip_attachments_(){    
-              jQuery.ajax({
-                type: 'POST',
-                url: "/wp-admin/admin-ajax.php",
-                data: { action : 'download_zip_attachments',Id:<?php echo get_the_id(); ?> },
-                beforeSend: function(){
-                    jQuery('.download_zip_loading').show();
-                },
-                success: function(data){                  
-                 
-                  if(data != 'false'){
-                    window.location = data;
-                  }else{
-                    alert('<?php echo __('Este post no contiene attachments', 'download_zip_attachments'); ?>');
-                  }
-                  jQuery('.download_zip_loading').hide();
-                }
-              });
-            }
-        </script>
-DOWNLOAD;
+
 	/* declare global variable $post to store the current post while we’re in the loop */
 	global $post;
 
@@ -64,7 +40,6 @@ DOWNLOAD;
 		if ( $attachments ) {
 			/* append the unordered list heading */
 			$content .= '<h3>Download Links:</h3>';
-                        $content .= $str;
 			/* append the opening unordered list tag */
 			$content .= '<ul class="post-attachments">';
 			/* for each attachment, create a list item */
