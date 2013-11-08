@@ -24,8 +24,35 @@ add_filter( 'the_content', 'my_the_content_filter' );
 
 function my_the_content_filter( $content ) {
 
-	/* declare global variable $post to store the current post while we’re in the loop */
-	global $post;
+        /* declare global variable $post to store the current post while we’re in the loop */
+        global $post;
+
+$str = <<<DOWNLOAD
+        <input class="button-primary" type="button" name="DownloadZip" id="DownloadZip" value="Download All" onclick="download_zip_attachments_();" />
+        <div class="download_zip_loading" style="display:none"></div>
+        <script type="text/javascript">
+            function download_zip_attachments_(){    
+              jQuery.ajax({
+                type: 'POST',
+                url: "/wp-admin/admin-ajax.php",
+                data: { action : 'download_zip_attachments',Id: {$post->ID} },
+                beforeSend: function(){
+                    jQuery('.download_zip_loading').show();
+                },
+                success: function(data){                  
+                 
+                  if(data != 'false'){
+                    window.location = data;
+                  }else{
+                    alert('This post contains no attachments');
+                  }
+                  jQuery('.download_zip_loading').hide();
+                }
+              });
+            }
+        </script>
+DOWNLOAD;
+>>>>>>> Stashed changes
 
 	/* check to make sure we’re acting on a single post which is published */
 	if ( is_single() && $post->post_type == 'post' && $post->post_status == 'publish' ) {
