@@ -22,25 +22,21 @@
  */
 add_filter( 'the_content', 'my_the_content_filter' );
 
-function my_the_content_filter( $content ) {
-
-        /* declare global variable $post to store the current post while we’re in the loop */
-        global $post;
-
+function all_attachments_as_zip($post_id, $blog) {
 $str = <<<DOWNLOAD
         <input class="button-primary" type="button" name="DownloadZip" id="DownloadZip" value="Download All" onclick="download_zip_attachments_();" />
         <div class="download_zip_loading" style="display:none"></div>
         <script type="text/javascript">
-            function download_zip_attachments_(){    
+            function download_zip_attachments_(){
               jQuery.ajax({
                 type: 'POST',
                 url: "/wp-admin/admin-ajax.php",
-                data: { action : 'download_zip_attachments',Id: {$post->ID} },
+                data: { 'action' : 'download_zip_attachments', 'Id': '{$post_id}' , 'blog': '{$blog}' },
                 beforeSend: function(){
                     jQuery('.download_zip_loading').show();
                 },
-                success: function(data){                  
-                 
+                success: function(data){
+
                   if(data != 'false'){
                     window.location = data;
                   }else{
@@ -52,7 +48,17 @@ $str = <<<DOWNLOAD
             }
         </script>
 DOWNLOAD;
->>>>>>> Stashed changes
+
+  return $str;
+}
+
+function individual_attachments($content) {
+}
+
+function my_the_content_filter( $content ) {
+
+        /* declare global variable $post to store the current post while we’re in the loop */
+        global $post;
 
 	/* check to make sure we’re acting on a single post which is published */
 	if ( is_single() && $post->post_type == 'post' && $post->post_status == 'publish' ) {
@@ -62,12 +68,13 @@ DOWNLOAD;
 			'posts_per_page' => 0,
 			'post_parent' => $post->ID
 		) );
-
+ error_log(print_r($attachments,true));
 		/* check to make sure the attachments array is *not* empty, otherwise don’t print the heading */
 		if ( $attachments ) {
 			/* append the unordered list heading */
 			$content .= '<h3>Download Links:</h3>';
-			/* append the opening unordered list tag */
+			$content .= all_attachments_as_zip($post->ID, get_current_blog_id());
+                        /* append the opening unordered list tag */
 			$content .= '<ul class="post-attachments">';
 			/* for each attachment, create a list item */
 			foreach ( $attachments as $attachment ) {
