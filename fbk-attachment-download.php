@@ -23,36 +23,53 @@
 add_filter( 'the_content', 'my_the_content_filter' );
 
 function all_attachments_as_zip($post_id, $blog) {
-$str = <<<DOWNLOAD
-        <input class="button-primary" type="button" name="DownloadZip" id="DownloadZip" value="Download All" onclick="download_zip_attachments_();" />
-        <div class="download_zip_loading" style="display:none"></div>
-        <script type="text/javascript">
-            function download_zip_attachments_(){
-              jQuery.ajax({
-                type: 'POST',
-                url: "/wp-admin/admin-ajax.php",
-                data: { 'action' : 'download_zip_attachments', 'Id': '{$post_id}' , 'blog': '{$blog}' },
-                beforeSend: function(){
-                    jQuery('.download_zip_loading').show();
-                },
-                success: function(data){
+    $str = <<<DOWNLOAD
+	    <input class="button-primary" type="button" name="DownloadZip" id="DownloadZip" value="Download All" onclick="download_zip_attachments_();" />
+	    <div class="download_zip_loading" style="display:none"></div>
+	    <script type="text/javascript">
+		function download_zip_attachments_(){
+		  jQuery.ajax({
+		    type: 'POST',
+		    url: "/wp-admin/admin-ajax.php",
+		    data: { 'action' : 'download_zip_attachments', 'Id': '{$post_id}' , 'blog': '{$blog}' },
+		    beforeSend: function(){
+			jQuery('.download_zip_loading').show();
+		    },
+		    success: function(data){
 
-                  if(data != 'false'){
-                    window.location = data;
-                  }else{
-                    alert('This post contains no attachments');
-                  }
-                  jQuery('.download_zip_loading').hide();
-                }
-              });
-            }
-        </script>
+		      if(data != 'false'){
+			window.location = data;
+		      }else{
+			alert('This post contains no attachments');
+		      }
+		      jQuery('.download_zip_loading').hide();
+		    }
+		  });
+		}
+	    </script>
 DOWNLOAD;
 
-  return $str;
+    return $str;
 }
 
-function individual_attachments($content) {
+function individual_attachments($attachments) {
+    $content = '';
+    $content .= '<ul class="post-attachments">';
+    /* for each attachment, create a list item */
+    foreach ( $attachments as $attachment ) {
+	/* generate the class variable based on the attachment#s mime type in case we want to use CSS to style by file type */
+	$class = "post-attachment mime-" . sanitize_title( $attachment->post_mime_type );
+	/* return a hyper link that points directly to the attached file *not* its attachment page */
+	$title = wp_get_attachment_link( $attachment->ID, false );
+	$file_url = wp_get_attachment_url( $attachment->ID );
+	$parts = parse_url($file_url);
+	/* find the 'greater-than' symbol, replace it with the HTML5 link download="<filename>" attribute, then reintroduce the 'greater-than' symbol */
+	$title = str_replace('>', ' download="' . basename($parts['path']) . '">', $title);;
+	/* create the list item for each loop */
+	$content .= '<li class="' . $class . '">' . $title . '</li>';
+    }
+    /* when all loops are finished, close the unordered list */
+    $content .= '</ul>';
 }
 
 function my_the_content_filter( $content ) {
@@ -74,23 +91,7 @@ function my_the_content_filter( $content ) {
 			/* append the unordered list heading */
 			$content .= '<h3>Download Links:</h3>';
 			$content .= all_attachments_as_zip($post->ID, get_current_blog_id());
-                        /* append the opening unordered list tag */
-			$content .= '<ul class="post-attachments">';
-			/* for each attachment, create a list item */
-			foreach ( $attachments as $attachment ) {
-				/* generate the class variable based on the attachment’s mime type in case we want to use CSS to style by file type */
-				$class = "post-attachment mime-" . sanitize_title( $attachment->post_mime_type );
-				/* return a hyper link that points directly to the attached file *not* its attachment page */
-				$title = wp_get_attachment_link( $attachment->ID, false );
-				$file_url = wp_get_attachment_url( $attachment->ID );
-				$parts = parse_url($file_url);
-				/* find the 'greater-than' symbol, replace it with the HTML5 link download="<filename>" attribute, then reintroduce the 'greater-than' symbol */
-				$title = str_replace('>', ' download="' . basename($parts['path']) . '">', $title);;
-				/* create the list item for each loop */
-				$content .= '<li class="' . $class . '">' . $title . '</li>';
-			}
-			/* when all loops are finished, close the unordered list */
-			$content .= '</ul>';
+			$content .= individual_attachments($attachments);
 		}
 	}
 
