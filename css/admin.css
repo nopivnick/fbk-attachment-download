@@ -1,0 +1,7 @@
+
+.download_zip_loading{
+    background: url('loading.gif') top left no-repeat;
+    width:18px;
+    height:18px;
+    float:right;
+}

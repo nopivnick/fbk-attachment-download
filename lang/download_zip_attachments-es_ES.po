@@ -1,0 +1,35 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Download Zip Attachments\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2012-10-19 16:35-0600\n"
+"PO-Revision-Date: 2012-10-19 16:49-0600\n"
+"Last-Translator: Esteban <rivenvirus@gmail.com>\n"
+"Language-Team: sorcode <staff@sorcode.com>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-KeywordsList: _;gettext;gettext_noop;__\n"
+"X-Poedit-Basepath: .\n"
+"X-Poedit-Language: Spanish\n"
+"X-Poedit-Country: SPAIN\n"
+"X-Poedit-SourceCharset: utf-8\n"
+"X-Poedit-SearchPath-0: ..\n"
+
+#: ../plugin.php:42
+msgid "Coloca un boton de descarga de attachments en el single"
+msgstr "Coloca un boton de descarga de attachments en el single"
+
+#: ../plugin.php:165
+msgid "Descargar Attachments"
+msgstr "Descargar Attachments"
+
+#: ../plugin.php:170
+msgid "Descargar Zip"
+msgstr "Descargar Zip"
+
+#: ../plugin.php:186
+msgid "Este post no contiene attachments"
+msgstr "Este post no contiene attachments"
+
