@@ -70,6 +70,8 @@ function individual_attachments($attachments) {
     }
     /* when all loops are finished, close the unordered list */
     $content .= '</ul>';
+
+    return $content;
 }
 
 function my_the_content_filter( $content ) {
