@@ -1,36 +1,37 @@
 <?php
-/*
-Plugin Name: Download Zip Attachments
-Plugin URI: http://www.sorcode.com
-Description: Download all attachments from the post into a zip file
-Version: 1
-Author: rivenvirus
-Author Email: santiago@sorcode.com
-License:
 
-  Copyright 2011 rivenvirus (santiago@sorcode.com)
+/**
+ * Plugin Name: FumbleBuK Attachment Download
+ * Plugin URI: http://www.fumblebuk.com
+ * Description: Download all attachments from the post into a zip file
+ * Version: 0.1.00
+ * Author: 
+ * Author Email: 
+ * License:
+ * 
+ *  Copyright 2013 FumbleBuK
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License, version 2, as 
+ *  published by the Free Software Foundation.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ *  
+ */
 
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License, version 2, as 
-  published by the Free Software Foundation.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-  
-*/
-
-class DownloadZipAttachments extends WP_Widget{
+class FBK_DownloadZipAttachments extends WP_Widget{
 
     /*--------------------------------------------*
 	 * Constants
 	 *--------------------------------------------*/
-	const name = 'Download Zip Attachments';
+	const name = 'FBK Download Zip Attachments';
 	const slug = 'download_zip_attachments';
 	var $post_types = array('post');
     var $post_types_attachments = array('attachment');
@@ -70,9 +71,9 @@ class DownloadZipAttachments extends WP_Widget{
 		$this->register_scripts_and_styles();
 	
                 // load in actions for content filters
-                add_filter( 'the_content', 'my_the_content_filter' );
+                add_filter( 'the_content', array(&$this,'my_the_content_filter') );
 	        /* add a CSS specifically for attachment icons */
-                add_action( 'wp_print_styles', 'my_enqueue_style' );
+                add_action( 'wp_print_styles', array(&$this,'my_enqueue_style') );
 
 	
 		if ( is_admin() ) {
@@ -129,7 +130,7 @@ class DownloadZipAttachments extends WP_Widget{
  * Filter the_content so we can append our list of post attachments before the post content gets displayed.
  */
 
-function all_attachments_as_zip($post_id, $blog) {
+private function all_attachments_as_zip($post_id, $blog) {
     $str = <<<DOWNLOAD
 	    <input class="button-primary" type="button" name="DownloadZip" id="DownloadZip" value="Download All" onclick="download_zip_attachments_();" />
 	    <div class="download_zip_loading" style="display:none"></div>
@@ -159,7 +160,7 @@ DOWNLOAD;
     return $str;
 }
 
-function individual_attachments($attachments) {
+private function individual_attachments($attachments) {
     $content = '';
     $content .= '<ul class="post-attachments">';
     /* for each attachment, create a list item */
@@ -199,8 +200,8 @@ function my_the_content_filter( $content ) {
 		if ( $attachments ) {
 			/* append the unordered list heading */
 			$content .= '<h3>Download Links:</h3>';
-			$content .= all_attachments_as_zip($post->ID, get_current_blog_id());
-			$content .= individual_attachments($attachments);
+			$content .= $this->all_attachments_as_zip($post->ID, get_current_blog_id());
+			$content .= $this->individual_attachments($attachments);
 		}
 	}
 
@@ -213,7 +214,7 @@ function my_enqueue_style() {
 }
 
 /* creates a compressed zip file */
-private function create_zip($files = array(),$destination = '',$overwrite = false) {
+public function create_zip($files = array(),$destination = '',$overwrite = false) {
 	//if the zip file already exists and overwrite is false, return false
 	if(file_exists($destination) && !$overwrite) { return false; }
 	//vars
@@ -254,9 +255,38 @@ private function create_zip($files = array(),$destination = '',$overwrite = fals
 	}
 }
 
+        public function forceDownload($archiveName,$exit = true) {
+                if(ini_get('zlib.output_compression')) {
+                        ini_set('zlib.output_compression', 'Off');
+                }
+
+                // Security checks
+                if( $archiveName == "" ) {
+                        echo "<html><title>Public Photo Directory - Download </title><body><BR><B>ERROR:</B> The download file was NOT SPECIFIED.</body></html>";
+                        exit;
+                }
+                elseif ( ! file_exists( $archiveName ) ) {
+                        echo "<html><title>Public Photo Directory - Download </title><body><BR><B>ERROR:</B> File not found.</body></html>";
+                        exit;
+                }
+
+                ob_clean();
+                header("Pragma: public");
+                header("Expires: 0");
+                header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
+                header("Cache-Control: private",false);
+                header("Content-Type: application/zip");
+                header("Content-Disposition: attachment; filename=".basename($archiveName).";" );
+                header("Content-Transfer-Encoding: binary");
+                header("Content-Length: ".filesize($archiveName));
+                readfile("$archiveName");
+                if($exit)
+                    exit;
+        }
+
+
     
     function download_zip(){        
-        require "create_zip_file.php";
         $files_to_zip = array();// create files array
         //run a query
         $post_id = $_POST["Id"];
@@ -281,8 +311,6 @@ private function create_zip($files = array(),$destination = '',$overwrite = fals
             }
 	
             error_log(print_r($files_to_zip, true));
-            //exit;
-            //$zip = new CreateZipFile;
             $uploads = wp_upload_dir(); 
             $tmp_location = $uploads['path'];
             $tmp_location_url = $uploads['url'];
@@ -331,6 +359,6 @@ error_log("Dir: " . $tmp_location . "   File: " . $FileName);
     <?php 
     }
 } // end class
-new DownloadZipAttachments();
+new FBK_DownloadZipAttachments();
 
-add_action('widgets_init', create_function('', 'return register_widget("DownloadZipAttachments");'));
+add_action('widgets_init', create_function('', 'return register_widget("FBK_DownloadZipAttachments");'));
