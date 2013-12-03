@@ -1,13 +1,13 @@
 <?php
 
 /**
- * Plugin Name: FumbleBuK Attachment Download
- * Plugin URI: http://fumblebuk.com/
+ * Plugin Name: FBK Attachment Download
+ * Plugin URI:
  * Description: Automatic download links for post attachments.
  * Version: 0.1.00
- * Author: FumbleBuK
- * Author URI: http://fumblebuk.com/
- * License: TBD
+ * Author: FBK
+ * Author URI:
+ * License:
  */
 
 /**
@@ -19,7 +19,7 @@
  * http://davidwalsh.name/create-zip-php
  */
 
-class FBK_DownloadZipAttachments extends WP_Widget{
+class FBK_DownloadZipAttachments {
 
 	/**
 	 * Constants
@@ -30,67 +30,55 @@ class FBK_DownloadZipAttachments extends WP_Widget{
 	var $post_types = array('post');
 	var $post_types_attachments = array('attachment');
 
+	private static $ins = null;
+	private static $networked = false;
+
+	public static function instance() {
+		// create a new object if it doesn't exist.
+		is_null(self::$ins) && self::$ins = new self;
+		return self::$ins;
+	}
+
 	/**
 	 * Constructor
 	 */
 
-	function __construct() {
-		add_action( 'init', array( &$this, 'init_download_zip_attachments' ) );
-	$widget_ops = array( 'classname' => 'download_zip_attach_widget', 'description' => __('Coloca un boton de descarga de attachments en el single', 'download_zip_attachments') ); // Widget Settings
-	$control_ops = array( 'id_base' => 'download_zip_attach_widget'); // Widget Control Settings
-	$this->WP_Widget( 'download_zip_attach_widget', self::name, $widget_ops, $control_ops );
+	// public static function init() {
+	// 	add_action( 'init', array( self::instance(), 'init_download_zip_attachments' ) );
+	// }
+
+	public function __construct() {
+		add_action( 'widgets_init', array( &$this, 'init_download_zip_attachments' ) );
 	}
 
-	function widget($args,$instance){
-	global $post;
-	if(is_single()){
-		$title = apply_filters('widget_title', $instance['title']); // the widget title
-		echo $args['before_widget'];
-		if ( $title )
-		echo $args['before_title'] . $title . $args['after_title'];
-		$this->display_widget($widget);
-		echo $args['after_widget'];
-		}
-	}
-
-	function display_widget($widget){
-		$this->download_metabox();
-	}
-
-	function init_download_zip_attachments() {
+	public function init_download_zip_attachments() {
 		// Setup localization
-		load_plugin_textdomain( 'download_zip_attachments', false, dirname(plugin_basename(__FILE__)) . '/lang');
+		//load_plugin_textdomain( 'download_zip_attachments', false, dirname(plugin_basename(__FILE__)) . '/lang');
 		// Load JavaScript and stylesheets
-		$this->register_scripts_and_styles();
+		add_action('wp_enqueue_scripts', array($this,'register_scripts_and_styles'));
 		// load in actions for content filters
-		add_filter( 'the_content', array(&$this,'my_the_content_filter') );
+		$the_plugs = get_site_option('active_sitewide_plugins');
+		foreach($the_plugs as $k => $v) {
+			if (strpos($k, 'fbk-attachment-download') !== false) {
+				self::$networked = true;
+			}
+		}
+		add_filter( 'the_content', array(self::instance(),'my_the_content_filter') );
 		/* add a CSS specifically for attachment icons */
-		add_action( 'wp_print_styles', array(&$this,'my_enqueue_style') );
-
-		if ( is_admin() ) {
-			//this will run when in the WordPress admin
-			add_action( 'add_meta_boxes', array(&$this,'meta_box'));
-		}
-
-		else {
-
-		}
-
-		add_action('wp_ajax_nopriv_download_zip_attachments', array( &$this, 'download_zip' ) );
-		add_action('wp_ajax_download_zip_attachments', array( &$this, 'download_zip' ) );
+		add_action( 'wp_print_styles', array($this,'my_enqueue_style') );
+		add_action('wp_ajax_nopriv_download_zip_attachments', array(self::instance(), 'download_zip' ) );
+		//add_action('wp_ajax_download_zip_attachments', array( self::instance(), 'download_zip' ) );
+		//add_action('wp_ajax_download_zip_attachments', array(self::instance(),'list_hook_details'));
+		//add_action( 'doing_it_wrong_run', array(self::instance(), 'abt_doing_it_wrong_helper'), 10, 3 );
 
 	}
 
-	private function register_scripts_and_styles() {
+	public function register_scripts_and_styles() {
 		if ( is_admin() ) {
 			$this->load_file( self::slug . '-admin-style', '/css/admin.css' );
-		}
-
-		else {
+		} else {
 			$this->load_file( self::slug . '-style', '/css/widget.css' );
-
 		} // end if/else
-
 	} // end register_scripts_and_styles
 
 	/**
@@ -110,15 +98,11 @@ class FBK_DownloadZipAttachments extends WP_Widget{
 			if( $is_script ) {
 				wp_register_script( $name, $url, array('jquery') ); //depends on jquery
 				wp_enqueue_script( $name );
-			}
-
-			else {
+			} else {
 				wp_register_style( $name, $url );
 				wp_enqueue_style( $name );
 			} // end if
-
 		} // end if
-
 	} // end load_file
 
 	/**
@@ -127,7 +111,7 @@ class FBK_DownloadZipAttachments extends WP_Widget{
 
 	private function all_attachments_as_zip($post_id, $blog) {
 		$str = <<<DOWNLOAD
-		<input class="button-primary" type="button" name="DownloadZip" id="DownloadZip" value="Download All" onclick="download_zip_attachments_();" />
+		<input class="button-primary" type="button" name="DownloadZip" id="DownloadZip" value="Download" onclick="download_zip_attachments_();" />
 		<div class="download_zip_loading" style="display:none"></div>
 		<script type="text/javascript">
 		function download_zip_attachments_(){
@@ -142,9 +126,7 @@ class FBK_DownloadZipAttachments extends WP_Widget{
 
 			if(data != 'false'){
 				window.location = data;
-			}
-
-			else {
+			} else {
 
 			alert('This post contains no attachments');
 			}
@@ -173,37 +155,47 @@ DOWNLOAD;
 		$title = str_replace('>', ' download="' . basename($parts['path']) . '">', $title);;
 		/* create the list item for each loop */
 		$content .= '<li class="' . $class . '">' . $title . '</li>';
-	}
+		}
 
 	/* when all loops are finished, close the unordered list */
 	$content .= '</ul>';
 
 	return $content;
-}
+	}
 
 	function my_the_content_filter( $content ) {
 
         	/* declare global variable $post to store the current post while we're in the loop */
 		global $post;
+                $active = false;
+		$the_plugs = get_option('active_plugins'); 
+		foreach($the_plugs as $key => $value) {
+                        if (strpos($value, 'fbk-attachment-download') !== false) {
+                                $active = true;
+                        }
+		}
+
+		if (self::$networked || $active) {
 
 		/* check to make sure we're acting on a single post which is published */
-		if ( is_single() && $post->post_type == 'post' && $post->post_status == 'publish' ) {
-			/* get *all* attachments (posts_per_page set to zero) that are attached to (children of) the current post (their parent) */
-			$attachments = get_posts( array(
-				'post_type' => 'attachment',
-				'posts_per_page' => 0,
-				'post_parent' => $post->ID
-			) );
+			if ( is_single() && $post->post_type == 'post' && $post->post_status == 'publish' ) {
+				/* get *all* attachments (posts_per_page set to zero) that are attached to (children of) the current post (their parent) */
+				$attachments = get_posts( array(
+					'post_type' => 'attachment',
+					'posts_per_page' => 0,
+					'post_parent' => $post->ID
+				));
 
-			// debug
-			error_log(print_r($attachments,true));
+				// debug
+				//error_log(print_r($attachments,true));
 
-			/* check to make sure the attachments array is *not* empty, otherwise don’t print the heading */
-			if ( $attachments ) {
-				/* append the unordered list heading */
-				$content .= '<h3>Download Links:</h3>';
-				$content .= $this->all_attachments_as_zip($post->ID, get_current_blog_id());
-				$content .= $this->individual_attachments($attachments);
+				/* check to make sure the attachments array is *not* empty, otherwise don’t print the heading */
+				if ( $attachments ) {
+					/* append the unordered list heading */
+					$content .= '<h3>Download attachments</h3>';
+					$content .= $this->all_attachments_as_zip($post->ID, get_current_blog_id());
+					//$content .= $this->individual_attachments($attachments);
+				}
 			}
 		}
 
@@ -212,7 +204,7 @@ DOWNLOAD;
 	}
 
 	function my_enqueue_style() {
-		wp_enqueue_style( 'post-attachemnts', get_stylesheet_directory_uri() . '/attachments.css', array(), null );
+		wp_enqueue_style( 'post-attachments', get_stylesheet_directory_uri() . '/attachments.css', array(), null );
 	}
 
 	/**
@@ -255,9 +247,7 @@ DOWNLOAD;
 
 			//check to make sure the file exists
 			return file_exists($destination);
-		}
-		else
-		{
+		} else {
 			return false;
 		}
 	}
@@ -296,7 +286,8 @@ DOWNLOAD;
 			exit;
 	}
 
-	function download_zip(){
+	public function download_zip(){
+		error_log('In download_zip');
 		$files_to_zip = array();// create files array
 		//run a query
 		$post_id = $_POST["Id"];
@@ -317,13 +308,14 @@ DOWNLOAD;
 		$attachments = get_posts($args);
 
 		//debug
+		error_log('Just got attachments');
 		error_log(print_r($attachments, true));
 
 		if ($attachments) {
 			//print_r($attachments);
 			foreach ($attachments as $attachment) {
-			$files_to_zip [] = get_attached_file( $attachment->ID ); // populate files array
-		}
+				$files_to_zip [] = get_attached_file( $attachment->ID ); // populate files array
+			}
 
 		// debug
 		error_log(print_r($files_to_zip, true));
@@ -343,57 +335,149 @@ DOWNLOAD;
 
 		}
 
-		else {s
+		else {
 			echo 'false';
 		}
-
 		exit;
+	}
 
-		}
+	// debug
 
 	/**
-	 * Function to add a download meta box
+	 * abt_doing_it_wrong_helper and debug_whereat pulled from here:
+	 * http://www.atlanticbt.com/blog/wordpress-debugging-doing-it-wrong-warnings/
 	 */
 
-	function meta_box() {
-		for($i=0; $i<count($this->post_types); $i++){
-		add_meta_box( 'download_metabox', __('Descargar Attachments', 'download_zip_attachments'), array(&$this,'download_metabox'), $this->post_types[$i], 'side', 'high' );
-        	}
+	/**
+	 * Because new WP 3.3 "doing it wrong" warnings don't really tell you where you screwed up...
+	 * @param string $function The function that was called.
+	 * @param string $message A message explaining what has been done incorrectly.
+	 * @param string $version The version of WordPress where the message was added.
+	 */
+	function abt_doing_it_wrong_helper($function, $message, $version){
+		$before = <<<EOD
+	<strong>$function:</strong> v$version
+	EOD;
+		$this->debug_whereat(3, 5, $before);
 	}
 
-	function download_metabox(){ ?>
-		<input class="button-primary" type="button" name="DownloadZip" id="DownloadZip" value="<?php echo __('Descargar Zip', 'download_zip_attachments') ?>" onclick="download_zip_attachments_();" />
-		<div class="download_zip_loading" style="display:none"></div>
-		<script type="text/javascript">
+	// debug
 
-		function download_zip_attachments_(){
-			jQuery.ajax({
-			type: 'POST',
-			url: "/wp-admin/admin-ajax.php",
-			data: { action : 'download_zip_attachments',Id:<?php echo get_the_id(); ?> },
-			beforeSend: function(){
-			jQuery('.download_zip_loading').show();
-			},
-			success: function(data){
-			if(data != 'false'){
-				window.location = data;
+	/**
+	 * Pretty-print debug_backtrace()
+	 * @param int $limit {optional} when to stop printing - how many recursions up/down
+	 * @param int $skip {optional} when to start printing - how many calls to skip over
+	 * @param string $before {optional} extra html to print before the table, inside debug container
+	 * @param string $after {optional} extra html to print before the table, inside debug container
+	 */
+
+	function debug_whereat($limit = false, $skip = false, $before = '', $after = ''){
+		static $debug_whereat_counter; if( !$debug_whereat_counter) $debug_whereat_counter = 0;
+		$uid = $debug_whereat_counter++;
+		?>
+		<div class="debug trace">
+			<?php echo $before; ?>
+		<table>
+			<thead><tr>
+				<th id="th-index-<?=$uid?>"><i>nth</i></th>
+				<th id="th-line-<?=$uid?>">Line</th>
+				<th id="th-file-<?=$uid?>">File</th>
+				<th id="th-method-<?=$uid?>">Method</th>
+			</tr></thead>
+			<tbody>
+		<?php
+
+		$backtrace = debug_backtrace();
+		if( $skip ) $backtrace = array_slice($backtrace, $skip);
+
+		foreach($backtrace as $index => $trace){
+			//force quit
+			if($limit !== false && $index == $limit){
+				?>
+				<tr><td colspan="4"><em>----- FORCE STOP RECURSION -----</em></td></tr>
+				<?php
+				break;
 			}
 
-			else {
-				alert('<?php echo __('Este post no contiene attachments', 'download_zip_attachments'); ?>');
-			}
-			jQuery('.download_zip_loading').hide();
-			}
-		});
+			?>
+			<tr class="trace-item">
+				<th headers="th-index-<?=$uid?>"><?=$index?></th>
+				<td headers="th-line-<?=$uid?>" class="line"><?=$trace['line']?></td>
+				<td headers="th-file-<?=$uid?>" class="file"><?=$trace['file']?></td>
+				<td headers="th-method-<?=$uid?>" class="method">
+					<code><?=$trace['function']?></code>
+					<?php
+					if(!empty($trace['args'])){
+						echo '<br />';
+						while(!empty($trace['args'])){
+							?>	{<i><?php print_r(array_shift($trace['args']) ); ?></i>}	<?php
+						}//	while !empty $trace['args']
+					}
+					?>
+				</td>
+			</tr>
+			<?php
 		}
-		</script>
-<?php
+		?>
+		</tbody></table><?php echo $after; ?></div>
+		<?php
+
+	}// function debug_whereat
+
+	// debug
+
+	/**
+	 * dump_hook and list_hook_details functions pulled from here:
+	 * http://www.rarst.net/script/debug-wordpress-hooks/
+	 * latest itteration of the code packaged in a class with some extras here:
+	 * https://gist.github.com/Rarst/1739714
+	 */
+
+	function dump_hook( $tag, $hook ) {
+		ksort($hook);
+
+		error_log ("<pre>>>>>>\t$tag<br>");
+
+		foreach( $hook as $priority => $functions ) {
+
+			error_log( $priority);
+
+			foreach( $functions as $function )
+				if( $function['function'] != 'list_hook_details' ) {
+
+					error_log( "\t");
+
+					if( is_string( $function['function'] ) )
+						error_log( $function['function']);
+
+					elseif( is_string( $function['function'][0] ) )
+						error_log( $function['function'][0] . ' -> ' . $function['function'][1]);
+
+					elseif( is_object( $function['function'][0] ) )
+						error_log( "(object) " . get_class( $function['function'][0] ) . ' -> ' . $function['function'][1]);
+
+					else
+						error_log(print_r($function));
+
+					error_log( ' (' . $function['accepted_args'] . ') <br>');
+				}
+		}
+
+		error_log ('</pre>');
 	}
+
+	function list_hook_details( $input = NULL ) {
+		global $wp_filter;
+
+		$tag = current_filter();
+		if( isset( $wp_filter[$tag] ) )
+			dump_hook( $tag, $wp_filter[$tag] );
+
+		return $input;
+	}
+
 } // end class
-
-new FBK_DownloadZipAttachments();
-
-add_action('widgets_init', create_function('', 'return register_widget("FBK_DownloadZipAttachments");'));
-
+//FBK_DownloadZipAttachments::init();
+$myClass = new FBK_DownloadZipAttachments();
+add_action('wp_ajax_download_zip_attachments', array( $myClass, 'download_zip' ) );
 ?>
-
